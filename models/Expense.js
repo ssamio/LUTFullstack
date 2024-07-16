@@ -15,6 +15,11 @@ let expenseSchema = new Schema(
       type: Number,
       required: true,
     },
+    repeating: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
     user: {
       type: Schema.Types.ObjectId,
       required: true,

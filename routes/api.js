@@ -9,6 +9,8 @@ const Expense = require("../models/Expense");
 const textValidate = () => body("text").isString().exists().trim().bail();
 const titleValidate = () => body("title").isString().exists().trim().bail();
 const sumValidate = () => body("sum").isNumeric().exists().bail();
+const repeatValidate = () => body("repeating").isBoolean().exists().bail();
+const budgetValidate = () => body("budget").isNumeric().exists().bail();
 const usernameValidate = () =>
   body("username").isString().exists().trim().bail();
 
@@ -35,12 +37,13 @@ router.get("/expense/:expenseId", async (req, res) => {
   }
 });
 
-//POST for new post
+//POST for new expense
 router.post(
   "/expense",
   sumValidate(),
   titleValidate(),
   textValidate(),
+  repeatValidate(),
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     //Validate content
@@ -49,7 +52,7 @@ router.post(
       return res.status(400).json({ error: "Invalid content" });
     }
     try {
-      const { title, text, sum } = req.body;
+      const { title, text, sum, repeating } = req.body;
       let ID;
       req.user.then((userData) => {
         ID = userData._id;
@@ -57,6 +60,7 @@ router.post(
           title: title,
           text: text,
           sum: sum,
+          repeating: repeating,
           user: ID,
         });
         expense.save();
@@ -102,6 +106,7 @@ router.put(
   sumValidate(),
   titleValidate(),
   textValidate(),
+  repeatValidate(),
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     //Validate content
@@ -115,13 +120,20 @@ router.put(
         return res.status(404).json({ error: "Expense not found" });
       }
 
-      const { title, text, sum } = req.body;
+      const { title, text, sum, repeating } = req.body;
       req.user.then((userData) => {
         if (
           userData._id.equals(expense.user) ||
           userData.adminStatus === true
         ) {
-          expense.updateOne({ title: title, text: text, sum: sum }).exec();
+          expense
+            .updateOne({
+              title: title,
+              text: text,
+              sum: sum,
+              repeating: repeating,
+            })
+            .exec();
           return res.status(200).json({ message: "Expense updated!" });
         } else {
           return res.status(403).json({ error: "You are not the owner!" });
@@ -173,6 +185,61 @@ router.put(
   },
 );
 
+//UPDATE for user to set their budget
+router.put(
+  "/user/:userId",
+  budgetValidate(),
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    //Validate content
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: "Invalid content" });
+    }
+    try {
+      const targetUser = await User.findById(req.params.userId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const budget = req.body.budget;
+
+      req.user.then((userData) => {
+        if (userData._id.equals(targetUser._id)) {
+          targetUser.updateOne({ budget: budget }).exec();
+          return res.status(200).json({
+            message: "Budget set!",
+          });
+        } else {
+          return res.status(403).json({ error: "You are not authorized" });
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Setting budget failed!" });
+    }
+  },
+);
+
+//GET user budget
+router.get(
+  "/budget",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    try {
+      const tokenUserId = req.user.id;
+      User.findById(tokenUserId).then((targetUser) => {
+        if (!targetUser) {
+          return res.status(404).json({ error: "User not found" });
+        } else {
+          res.status(200).json({ budget: targetUser.budget });
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Error" });
+    }
+  },
+);
+
 //DELETE for user
 router.delete(
   "/user/:userId",
@@ -191,8 +258,7 @@ router.delete(
         ) {
           //Delete user
           targetUser.deleteOne();
-          //Find all expenses the user has made
-          const userExpenses = Expense.find({ user: targetUser._id });
+
           //Delete all expenses the user has made
           Expense.deleteMany({ user: targetUser._id }).exec();
 
