@@ -1,11 +1,18 @@
-import { Routes, RouterModule } from '@angular/router';
+import { Routes } from '@angular/router';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { LoginComponent } from './login/login.component';
+import { ExpensesComponent } from './expenses/expenses.component';
+import { authGuard } from './guards/auth.guard';
+import { RegisterComponent } from './register/register.component';
 
-export const AppRoutes: Routes = [
-  { path: 'dashboard', component: DashboardComponent },
-  { path: 'login', component: LoginComponent },
+export const appRoutes: Routes = [
   { path: '', redirectTo: '/dashboard', pathMatch: 'full' },
+  {
+    path: 'dashboard',
+    component: DashboardComponent,
+    canActivate: [authGuard],
+  },
+  { path: 'expenses', component: ExpensesComponent, canActivate: [authGuard] },
+  { path: 'login', component: LoginComponent },
+  { path: 'register', component: RegisterComponent },
 ];
-
-export const AppRoutingModule = RouterModule.forRoot(AppRoutes);

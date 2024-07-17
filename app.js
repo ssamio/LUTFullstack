@@ -28,9 +28,6 @@ app.use(passport.initialize());
 
 app.use(express.static(path.resolve("..", "client", "build")));
 
-app.use("/auth", authRouter);
-app.use("/api", apiRouter);
-
 if (process.env.NODE_ENV === "production") {
   app.get("*", (req, res) =>
     res.sendFile(path.resolve("..", "client", "build", "index.html")),
@@ -39,12 +36,19 @@ if (process.env.NODE_ENV === "production") {
 
 if (process.env.NODE_ENV === "development") {
   var corsOptions = {
-    origin: "http://localhost:3000",
-    optionsSuccessStatus: 200,
+    origin: "*", // Allow requests from any origin
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS", // Allowed methods
+    allowedHeaders:
+      "Origin, X-Requested-With, Content-Type, Accept, Authorization", // Allowed headers
+    optionsSuccessStatus: 200, // Response status for successful OPTIONS request
   };
 }
 
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+
+app.use("/auth", authRouter);
+app.use("/api", apiRouter);
 
 const PORT = process.env.PORT || 3000;
 

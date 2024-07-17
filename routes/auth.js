@@ -17,7 +17,7 @@ const passwordValidate = () =>
     minSymbols: 1,
   });
 
-//POST for registering user
+//POST for registering user, also logs the user in by providing a JWT token in the process
 router.post(
   "/register",
   emailValidate(),
@@ -29,8 +29,11 @@ router.post(
       return res.status(400).json({ error: "Credential validation error" });
     }
 
-    const query = await User.findOne({ email: req.body.email }).exec();
-    if (query) {
+    const emailQuery = await User.findOne({ email: req.body.email }).exec();
+    const usernameQuery = await User.findOne({
+      username: req.body.username,
+    }).exec();
+    if (emailQuery || usernameQuery) {
       return res.status(403).json({ error: "Duplicate error" });
     } else {
       let username;
@@ -47,7 +50,23 @@ router.post(
         if (!ok) {
           return res.status(500).json({ error: "Failure" });
         } else {
-          return res.sendStatus(200);
+          User.findOne({ email: req.body.email })
+            .exec()
+            .then((user) => {
+              const token = jwt.sign(
+                {
+                  email: user.email,
+                  id: user._id,
+                  username: user.username,
+                  adminStatus: user.adminStatus,
+                },
+                process.env.SECRET,
+                {
+                  expiresIn: "1h",
+                },
+              );
+              return res.status(200).json({ token });
+            });
         }
       });
     }
