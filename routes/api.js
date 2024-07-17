@@ -14,28 +14,19 @@ const budgetValidate = () => body("budget").isNumeric().exists().bail();
 const usernameValidate = () =>
   body("username").isString().exists().trim().bail();
 
-//GET all expenses that exist
-router.get("/expenses", async (req, res) => {
-  const expenses = await Expense.find().populate("user", "username");
-  if (expenses) {
-    res.send(expenses);
-  } else {
-    res.status(404).json({ error: "Expenses not found" });
-  }
-});
-
-//GET a single expense by id
-router.get("/expense/:expenseId", async (req, res) => {
-  const expense = await Expense.findById(req.params.expenseId).populate(
-    "user",
-    "username",
-  );
-  if (expense) {
-    res.send(expense);
-  } else {
-    res.status(404).json({ error: "Expense not found" });
-  }
-});
+//GET all expenses that exist per user
+router.get(
+  "/expenses",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    const expenses = await Expense.find({ user: req.user.id });
+    if (expenses) {
+      res.send(expenses);
+    } else {
+      res.status(404).json({ error: "Expenses not found" });
+    }
+  },
+);
 
 //POST for new expense
 router.post(
@@ -53,19 +44,15 @@ router.post(
     }
     try {
       const { title, text, sum, repeating } = req.body;
-      let ID;
-      req.user.then((userData) => {
-        ID = userData._id;
-        const expense = new Expense({
-          title: title,
-          text: text,
-          sum: sum,
-          repeating: repeating,
-          user: ID,
-        });
-        expense.save();
-        return res.status(200).json({ message: "Expense created!" });
+      const expense = new Expense({
+        title: title,
+        text: text,
+        sum: sum,
+        repeating: repeating,
+        user: req.user.id,
       });
+      expense.save();
+      return res.status(200).json({ message: "Expense created!" });
     } catch (error) {
       return res.status(500).json({ error: "Failed to create expense!" });
     }
@@ -78,17 +65,13 @@ router.delete(
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     try {
-      const expense = await Expense.findById(req.params.expenseId);
-      if (!expense) {
-        return res.status(404).json({ error: "Expense not found" });
-      }
+      Expense.findById(req.params.expenseId).then((expense) => {
+        if (!expense) {
+          return res.status(404).json({ error: "Expense not found" });
+        }
 
-      req.user.then((userData) => {
-        if (
-          userData._id.equals(expense.user) ||
-          userData.adminStatus === true
-        ) {
-          expense.deleteOne();
+        if (expense.user.equals(req.user.id) || req.user.adminStatus === true) {
+          expense.deleteOne().exec();
           return res.status(200).json({ message: "Expense deleted!" });
         } else {
           return res.status(403).json({ error: "You are not the owner!" });
@@ -115,17 +98,12 @@ router.put(
       return res.status(400).json({ error: "Invalid content" });
     }
     try {
-      const expense = await Expense.findById(req.params.expenseId);
-      if (!expense) {
-        return res.status(404).json({ error: "Expense not found" });
-      }
-
-      const { title, text, sum, repeating } = req.body;
-      req.user.then((userData) => {
-        if (
-          userData._id.equals(expense.user) ||
-          userData.adminStatus === true
-        ) {
+      Expense.findById(req.params.expenseId).then((expense) => {
+        if (!expense) {
+          return res.status(404).json({ error: "Expense not found" });
+        }
+        const { title, text, sum, repeating } = req.body;
+        if (expense.user.equals(req.user.id) || req.user.adminStatus === true) {
           expense
             .updateOne({
               title: title,
@@ -165,20 +143,14 @@ router.put(
       const username = req.body.username;
       const preExist = await User.findOne({ username: username });
       if (preExist) return res.status(403).json({ error: "Username taken!" });
-
-      req.user.then((userData) => {
-        if (
-          userData._id.equals(targetUser._id) ||
-          userData.adminStatus === true
-        ) {
-          targetUser.updateOne({ username: username }).exec();
-          return res.status(200).json({
-            message: "Username updated! Login again to apply changes.",
-          });
-        } else {
-          return res.status(403).json({ error: "You are not authorized" });
-        }
-      });
+      if (targetUser._id.equals(req.user.id) || req.user.adminStatus === true) {
+        targetUser.updateOne({ username: username }).exec();
+        return res.status(200).json({
+          message: "Username updated! Login again to apply changes.",
+        });
+      } else {
+        return res.status(403).json({ error: "You are not authorized" });
+      }
     } catch (error) {
       res.status(500).json({ error: "Updating username failed!" });
     }
@@ -187,7 +159,7 @@ router.put(
 
 //UPDATE for user to set their budget
 router.put(
-  "/user/:userId",
+  "/budget",
   budgetValidate(),
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
@@ -197,22 +169,16 @@ router.put(
       return res.status(400).json({ error: "Invalid content" });
     }
     try {
-      const targetUser = await User.findById(req.params.userId);
+      const targetUser = await User.findById(req.user.id);
+
       if (!targetUser) {
         return res.status(404).json({ error: "User not found" });
       }
 
       const budget = req.body.budget;
-
-      req.user.then((userData) => {
-        if (userData._id.equals(targetUser._id)) {
-          targetUser.updateOne({ budget: budget }).exec();
-          return res.status(200).json({
-            message: "Budget set!",
-          });
-        } else {
-          return res.status(403).json({ error: "You are not authorized" });
-        }
+      targetUser.updateOne({ budget: budget }).exec();
+      return res.status(200).json({
+        message: "Budget set!",
       });
     } catch (error) {
       res.status(500).json({ error: "Setting budget failed!" });
@@ -250,23 +216,17 @@ router.delete(
       if (!targetUser) {
         return res.status(404).json({ error: "User not found" });
       }
+      if (targetUser._id.equals(req.user.id) || req.user.adminStatus === true) {
+        //Delete user
+        targetUser.deleteOne().exec();
 
-      req.user.then((userData) => {
-        if (
-          userData._id.equals(targetUser._id) ||
-          userData.adminStatus === true
-        ) {
-          //Delete user
-          targetUser.deleteOne();
+        //Delete all expenses the user has made
+        Expense.deleteMany({ user: targetUser._id }).exec();
 
-          //Delete all expenses the user has made
-          Expense.deleteMany({ user: targetUser._id }).exec();
-
-          return res.status(200).json({ message: "User deleted. Goodbye! :)" });
-        } else {
-          return res.status(403).json({ error: "You are not authorized" });
-        }
-      });
+        return res.status(200).json({ message: "User deleted. Goodbye! :)" });
+      } else {
+        return res.status(403).json({ error: "You are not authorized" });
+      }
     } catch (error) {
       res.status(500).json({ error: "Deleting user failed!" });
     }
@@ -283,16 +243,13 @@ router.get(
       if (!users) {
         return res.status(404).json({ error: "No users" });
       }
-
-      req.user.then((userData) => {
-        if (!userData) {
-          return res.status(403).json({ error: "Error!" });
-        } else if (userData.adminStatus === true) {
-          res.send(users);
-        } else {
-          return res.status(403).json({ error: "Error!" });
-        }
-      });
+      if (!req.user.adminStatus) {
+        return res.status(403).json({ error: "Error!" });
+      } else if (req.user.adminStatus === true) {
+        res.send(users);
+      } else {
+        return res.status(403).json({ error: "Error!" });
+      }
     } catch (error) {
       res.status(500).json({ error: "Error" });
     }
