@@ -4,9 +4,11 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface Expense {
+  _id: string;
   title: string;
   text: string;
   sum: number;
+  createdAt: string;
 }
 
 @Injectable({
@@ -31,5 +33,20 @@ export class ExpenseService {
   // Get user username and budget
   getUserBudget(): Observable<{ username: string; budget: number }> {
     return this.http.get<{ username: string; budget: number }>(this.userUrl);
+  }
+
+  // Get all expenses
+  getExpenses(): Observable<Expense[]> {
+    return this.http.get<Expense[]>(this.expenseUrl);
+  }
+
+  // Update an expense
+  updateExpense(expense: Expense): Observable<Expense> {
+    return this.http.put<Expense>(`${this.expenseUrl}/${expense._id}`, expense);
+  }
+
+  // Delete an expense
+  deleteExpense(expense: Expense): Observable<void> {
+    return this.http.delete<void>(`${this.expenseUrl}/${expense._id}`);
   }
 }

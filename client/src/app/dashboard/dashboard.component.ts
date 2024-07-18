@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ExpenseService, Expense } from '../services/expense.service';
 import { ExpenseFormComponent } from '../components/expense-form/expense-form.component';
+import { HttpErrorResponse } from '@angular/common/http';
 
 @Component({
   selector: 'app-dashboard',
@@ -22,6 +23,7 @@ export class DashboardComponent implements OnInit {
   }
 
   load(): void {
+    this.errorMessage = null;
     this.loadExpenses();
     this.loadBudget();
   }
@@ -34,8 +36,12 @@ export class DashboardComponent implements OnInit {
           0,
         );
       },
-      error: () => {
-        this.errorMessage = 'Failed to load expenses. Please try again later.';
+      error: (err: HttpErrorResponse) => {
+        if (err.status === 404) {
+          this.errorMessage = 'No expenses.';
+        } else {
+          this.errorMessage = 'Failed to load expenses.';
+        }
       },
     });
   }
@@ -46,7 +52,7 @@ export class DashboardComponent implements OnInit {
         this.budget = data.budget;
       },
       error: () => {
-        this.errorMessage = 'Failed to load budget. Please try again later.';
+        this.errorMessage = 'Failed to load budget.';
       },
     });
   }

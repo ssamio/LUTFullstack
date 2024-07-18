@@ -1,1 +1,109 @@
-
+<div class="container mt-5">
+  <h2>All Expenses</h2>
+  <div *ngIf="errorMessage" class="alert alert-danger">
+    {{ errorMessage }}
+  </div>
+  <table class="table table-striped table-bordered mt-4">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Description</th>
+        <th>Amount</th>
+        <th>Date</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let expense of expenses">
+        <td>{{ expense.title }}</td>
+        <td>{{ expense.text }}</td>
+        <td>{{ expense.sum | currency }}</td>
+        <td>{{ expense.createdAt | date: "short" }}</td>
+        <td>
+          <button
+            class="btn btn-primary btn-sm me-2"
+            (click)="editExpense(expense)"
+          >
+            Edit
+          </button>
+          <button
+            class="btn btn-danger btn-sm"
+            (click)="deleteExpense(expense)"
+          >
+            Delete
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div *ngIf="currentEditingExpense" class="mt-4">
+    <h3>Edit Expense</h3>
+    <form [formGroup]="editForm" (ngSubmit)="saveExpense()">
+      <div class="form-group">
+        <label for="title">Title</label>
+        <input
+          type="text"
+          id="title"
+          class="form-control"
+          formControlName="title"
+        />
+        <div
+          *ngIf="
+            editForm.get('title')?.invalid && editForm.get('title')?.touched
+          "
+          class="invalid-feedback d-block"
+        >
+          Title is required
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="text">Description</label>
+        <textarea
+          id="text"
+          class="form-control"
+          formControlName="text"
+        ></textarea>
+        <div
+          *ngIf="editForm.get('text')?.invalid && editForm.get('text')?.touched"
+          class="invalid-feedback d-block"
+        >
+          Description is required
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="sum">Amount</label>
+        <input
+          type="text"
+          id="sum"
+          class="form-control"
+          formControlName="sum"
+        />
+        <div
+          *ngIf="editForm.get('sum')?.invalid && editForm.get('sum')?.touched"
+          class="invalid-feedback d-block"
+        >
+          A valid amount is required
+        </div>
+      </div>
+      <div class="form-group mb-3">
+        <label for="createdAt">Date</label>
+        <input
+          type="text"
+          id="createdAt"
+          class="form-control"
+          formControlName="createdAt"
+        />
+      </div>
+      <button
+        type="submit"
+        class="btn btn-success me-2"
+        [disabled]="editForm.invalid"
+      >
+        Save
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="cancelEdit()">
+        Cancel
+      </button>
+    </form>
+  </div>
+</div>

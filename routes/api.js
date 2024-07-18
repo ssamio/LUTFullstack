@@ -172,13 +172,16 @@ router.put(
     }
     try {
       const targetUser = await User.findById(req.user.id);
-
       if (!targetUser) {
         return res.status(404).json({ error: "User not found" });
       }
-
       const budget = req.body.budget;
       const username = req.body.username;
+      // Check for duplicate usernames
+      const existingUser = await User.findOne({ username: username });
+      if (existingUser && existingUser.id !== req.user.id) {
+        return res.status(400).json({ error: "Username is already taken" });
+      }
       targetUser.updateOne({ username: username, budget: budget }).exec();
       return res.status(200).json({
         message: "User updated!",

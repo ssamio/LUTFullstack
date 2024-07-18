@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ExpenseTableComponent } from './expense-table.component';
+import { UserSettingsComponent } from './user-settings.component';
 
-describe('ExpenseTableComponent', () => {
-  let component: ExpenseTableComponent;
-  let fixture: ComponentFixture<ExpenseTableComponent>;
+describe('UserSettingsComponent', () => {
+  let component: UserSettingsComponent;
+  let fixture: ComponentFixture<UserSettingsComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [ExpenseTableComponent]
+      imports: [UserSettingsComponent]
     })
     .compileComponents();
     
-    fixture = TestBed.createComponent(ExpenseTableComponent);
+    fixture = TestBed.createComponent(UserSettingsComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

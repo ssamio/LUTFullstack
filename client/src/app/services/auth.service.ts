@@ -7,11 +7,17 @@ export interface AuthResponse {
   token: string;
 }
 
+export interface User {
+  username: string;
+  budget: number;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
   private url = `${environment.authUrl}`;
+  private userUrl = `${environment.apiUrl}/user`;
 
   constructor(private http: HttpClient) {}
 
@@ -44,5 +50,26 @@ export class AuthService {
   // User logout
   logout(): void {
     localStorage.removeItem('access_token');
+  }
+
+  // Get current user data
+  getCurrentUser(): Observable<User> {
+    return this.http.get<User>(this.userUrl);
+  }
+
+  // Update user
+  updateUser(
+    username: string,
+    budget: number,
+  ): Observable<{ message: string }> {
+    return this.http.put<{ message: string }>(this.userUrl, {
+      username,
+      budget,
+    });
+  }
+
+  // Delete user
+  deleteUser(): Observable<{ message: string }> {
+    return this.http.delete<{ message: string }>(this.userUrl);
   }
 }
