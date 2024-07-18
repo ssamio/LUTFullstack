@@ -9,7 +9,6 @@ const Expense = require("../models/Expense");
 const textValidate = () => body("text").isString().exists().trim().bail();
 const titleValidate = () => body("title").isString().exists().trim().bail();
 const sumValidate = () => body("sum").isNumeric().exists().bail();
-const repeatValidate = () => body("repeating").isBoolean().exists().bail();
 const budgetValidate = () => body("budget").isNumeric().exists().bail();
 const usernameValidate = () =>
   body("username").isString().exists().trim().bail();
@@ -34,7 +33,6 @@ router.post(
   sumValidate(),
   titleValidate(),
   textValidate(),
-  repeatValidate(),
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     //Validate content
@@ -48,7 +46,6 @@ router.post(
         title: title,
         text: text,
         sum: sum,
-        repeating: repeating,
         user: req.user.id,
       });
       expense.save();
@@ -89,7 +86,6 @@ router.put(
   sumValidate(),
   titleValidate(),
   textValidate(),
-  repeatValidate(),
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     //Validate content
@@ -109,7 +105,6 @@ router.put(
               title: title,
               text: text,
               sum: sum,
-              repeating: repeating,
             })
             .exec();
           return res.status(200).json({ message: "Expense updated!" });
