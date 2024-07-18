@@ -1,0 +1,75 @@
+<form [formGroup]="expenseForm" (ngSubmit)="onSubmit()">
+  <div class="form-group mb-3">
+    <label for="title">Title</label>
+    <input
+      type="text"
+      id="title"
+      class="form-control"
+      formControlName="title"
+      placeholder="Enter title"
+      [ngClass]="{
+        'is-invalid':
+          expenseForm.get('title')?.invalid && expenseForm.get('title')?.touched
+      }"
+    />
+    <div
+      *ngIf="
+        expenseForm.get('title')?.invalid && expenseForm.get('title')?.touched
+      "
+      class="invalid-feedback"
+    >
+      Title is required
+    </div>
+  </div>
+  <div class="form-group mb-3">
+    <label for="text">Description</label>
+    <textarea
+      id="text"
+      class="form-control"
+      formControlName="text"
+      placeholder="Enter description"
+      [ngClass]="{
+        'is-invalid':
+          expenseForm.get('text')?.invalid && expenseForm.get('text')?.touched
+      }"
+    ></textarea>
+    <div
+      *ngIf="
+        expenseForm.get('text')?.invalid && expenseForm.get('text')?.touched
+      "
+      class="invalid-feedback"
+    >
+      Description is required
+    </div>
+  </div>
+  <div class="form-group mb-3">
+    <label for="sum">Amount</label>
+    <input
+      type="text"
+      id="sum"
+      class="form-control"
+      formControlName="sum"
+      placeholder="Enter amount"
+      [ngClass]="{
+        'is-invalid':
+          expenseForm.get('sum')?.invalid && expenseForm.get('sum')?.touched
+      }"
+    />
+    <div
+      *ngIf="expenseForm.get('sum')?.invalid && expenseForm.get('sum')?.touched"
+      class="invalid-feedback"
+    >
+      A valid amount is required
+    </div>
+  </div>
+  <button
+    type="submit"
+    class="btn btn-primary w-100"
+    [disabled]="expenseForm.invalid"
+  >
+    Post Expense
+  </button>
+</form>
+<div *ngIf="errorMessage" class="alert alert-danger mt-3">
+  {{ errorMessage }}
+</div>

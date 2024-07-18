@@ -1,1 +1,44 @@
-<p>dashboard works!</p>
+<div class="container mt-5">
+  <div class="row">
+    <div class="col-md-12">
+      <h2>Dashboard</h2>
+    </div>
+  </div>
+  <div class="row mt-4">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header">
+          <h3>Monthly Budget Overview</h3>
+        </div>
+        <div class="card-body">
+          <div *ngIf="errorMessage" class="alert alert-danger">
+            {{ errorMessage }}
+          </div>
+          <div *ngIf="!errorMessage">
+            <p><strong>Current Budget:</strong> {{ budget | currency }}</p>
+            <p>
+              <strong>Total Expenses This Month:</strong>
+              {{ totalExpenses | currency }}
+            </p>
+            <p>
+              <strong>Remaining Budget:</strong>
+              {{ budget - totalExpenses | currency }}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6 mt-4 mt-md-0">
+      <div class="card">
+        <div class="card-header">
+          <h3>Add New Expense</h3>
+        </div>
+        <div class="card-body">
+          <app-expense-form
+            (expensePosted)="onExpensePosted()"
+          ></app-expense-form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

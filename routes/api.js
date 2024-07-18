@@ -13,9 +13,11 @@ const budgetValidate = () => body("budget").isNumeric().exists().bail();
 const usernameValidate = () =>
   body("username").isString().exists().trim().bail();
 
+//AdminStatus used in methods is for testing purposes, not implemented nor used in the app
+
 //GET all expenses that exist per user
 router.get(
-  "/expenses",
+  "/expense",
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     const expenses = await Expense.find({ user: req.user.id });
@@ -23,6 +25,44 @@ router.get(
       res.send(expenses);
     } else {
       res.status(404).json({ error: "Expenses not found" });
+    }
+  },
+);
+
+//GET user expenses for the current month
+router.get(
+  "/expense/month",
+  passport.authenticate("jwt", { session: false }),
+  async (req, res) => {
+    try {
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const endOfMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0,
+        23,
+        59,
+        59,
+        999,
+      );
+
+      const expenses = await Expense.find({
+        user: req.user.id,
+        createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+      });
+
+      if (expenses.length > 0) {
+        res.send(expenses);
+      } else {
+        res
+          .status(404)
+          .json({ error: "No expenses found for the current month" });
+      }
+    } catch (error) {
+      res
+        .status(500)
+        .json({ error: "An error occurred while fetching expenses" });
     }
   },
 );
@@ -118,43 +158,10 @@ router.put(
   },
 );
 
-//UPDATE for user to set their username
+//UPDATE for user
 router.put(
-  "/user/:userId",
+  "/user",
   usernameValidate(),
-  passport.authenticate("jwt", { session: false }),
-  async (req, res) => {
-    //Validate content
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ error: "Invalid content" });
-    }
-    try {
-      const targetUser = await User.findById(req.params.userId);
-      if (!targetUser) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      const username = req.body.username;
-      const preExist = await User.findOne({ username: username });
-      if (preExist) return res.status(403).json({ error: "Username taken!" });
-      if (targetUser._id.equals(req.user.id) || req.user.adminStatus === true) {
-        targetUser.updateOne({ username: username }).exec();
-        return res.status(200).json({
-          message: "Username updated! Login again to apply changes.",
-        });
-      } else {
-        return res.status(403).json({ error: "You are not authorized" });
-      }
-    } catch (error) {
-      res.status(500).json({ error: "Updating username failed!" });
-    }
-  },
-);
-
-//UPDATE for user to set their budget
-router.put(
-  "/budget",
   budgetValidate(),
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
@@ -171,19 +178,20 @@ router.put(
       }
 
       const budget = req.body.budget;
-      targetUser.updateOne({ budget: budget }).exec();
+      const username = req.body.username;
+      targetUser.updateOne({ username: username, budget: budget }).exec();
       return res.status(200).json({
-        message: "Budget set!",
+        message: "User updated!",
       });
     } catch (error) {
-      res.status(500).json({ error: "Setting budget failed!" });
+      res.status(500).json({ error: "Updating user failed!" });
     }
   },
 );
 
-//GET user budget
+//GET user
 router.get(
-  "/budget",
+  "/user",
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     try {
@@ -192,7 +200,9 @@ router.get(
         if (!targetUser) {
           return res.status(404).json({ error: "User not found" });
         } else {
-          res.status(200).json({ budget: targetUser.budget });
+          res
+            .status(200)
+            .json({ username: targetUser.username, budget: targetUser.budget });
         }
       });
     } catch (error) {
@@ -203,11 +213,11 @@ router.get(
 
 //DELETE for user
 router.delete(
-  "/user/:userId",
+  "/user",
   passport.authenticate("jwt", { session: false }),
   async (req, res) => {
     try {
-      const targetUser = await User.findById(req.params.userId);
+      const targetUser = await User.findById(req.user.id);
       if (!targetUser) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -227,46 +237,4 @@ router.delete(
     }
   },
 );
-
-//GET all users for the super admin to see and manage
-router.get(
-  "/users",
-  passport.authenticate("jwt", { session: false }),
-  async (req, res) => {
-    try {
-      const users = await User.find();
-      if (!users) {
-        return res.status(404).json({ error: "No users" });
-      }
-      if (!req.user.adminStatus) {
-        return res.status(403).json({ error: "Error!" });
-      } else if (req.user.adminStatus === true) {
-        res.send(users);
-      } else {
-        return res.status(403).json({ error: "Error!" });
-      }
-    } catch (error) {
-      res.status(500).json({ error: "Error" });
-    }
-  },
-);
-
-//GET username from database. This is to show it after update
-router.get(
-  "/name/:userId",
-  passport.authenticate("jwt", { session: false }),
-  async (req, res) => {
-    try {
-      const targetUser = await User.findById(req.params.userId);
-      if (!targetUser) {
-        return res.status(404).json({ error: "User not found" });
-      } else {
-        res.status(200).send(targetUser.username);
-      }
-    } catch (error) {
-      res.status(500).json({ error: "Error" });
-    }
-  },
-);
-
 module.exports = router;
